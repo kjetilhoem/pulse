@@ -8,8 +8,10 @@ from textual.widgets import Footer, Static
 
 from pulse.data.config import PROJECTS, REFRESH_INTERVAL
 from pulse.data.git_collector import collect_all
+from pulse.data.github_collector import collect_prs
 from pulse.widgets.activity_feed import ActivityFeed
 from pulse.widgets.header_bar import HeaderBar
+from pulse.widgets.pr_panel import PrPanel
 from pulse.widgets.project_card import ProjectCard
 from pulse.widgets.skill_panel import SkillPanel
 
@@ -70,7 +72,8 @@ class PulseApp(App):
                 yield Static("")
                 yield ActivityFeed(id="feed")
 
-            with Vertical(id="right-panel"):
+            with ScrollableContainer(id="right-panel"):
+                yield PrPanel(id="prs")
                 yield SkillPanel(id="skills")
 
         yield Footer()
@@ -88,9 +91,14 @@ class PulseApp(App):
         """Collect data from all projects and update UI."""
         snapshots = collect_all(PROJECTS)
 
-        # Update header
+        # Update PR panel
+        prs = collect_prs(PROJECTS)
+        pr_panel = self.query_one("#prs", PrPanel)
+        pr_panel.update_prs(prs)
+
+        # Update header (with PR data)
         header = self.query_one("#header", HeaderBar)
-        header.update_stats(snapshots)
+        header.update_stats(snapshots, prs)
 
         # Update project cards
         grid = self.query_one("#project-grid", Vertical)
