@@ -32,12 +32,18 @@ class HeaderBar(Static):
 
         now = datetime.now(timezone.utc).strftime("%H:%M:%S")
 
+        action_count = sum(1 for s in snapshots if s.needs_action)
+
         parts = [
             f"[bold #E94560] PULSE [/]",
             f"[#AAAACC]{total_projects} projects[/]",
             f"[#00FF88]{total_commits} commits[/]",
             f"[#00D9FF]{total_branches} branches[/]",
         ]
+        if action_count:
+            parts.append(
+                f"[bold reverse #E94560]  ▶ {action_count} NEED ACTION  [/]"
+            )
         if total_changes:
             parts.append(f"[#FFB800]{total_changes} uncommitted[/]")
         parts.append(f"[#666677]{now}[/]")

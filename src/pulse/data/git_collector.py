@@ -38,6 +38,23 @@ class ProjectSnapshot:
     last_activity: datetime | None = None
     error: str | None = None
 
+    @property
+    def action_items(self) -> list[str]:
+        """Return list of things that need the user's attention."""
+        items: list[str] = []
+        if self.uncommitted_changes > 0:
+            items.append(f"{self.uncommitted_changes} uncommitted changes — commit or stash")
+        for b in self.branches:
+            if b.ahead > 0:
+                items.append(f"{b.name} is {b.ahead} ahead — push to remote")
+            if b.behind > 0:
+                items.append(f"{b.name} is {b.behind} behind — pull from remote")
+        return items
+
+    @property
+    def needs_action(self) -> bool:
+        return len(self.action_items) > 0
+
 
 def _run_git(repo: Path, *args: str) -> str:
     """Run a git command in a repo, return stdout or empty on error."""
@@ -98,18 +115,41 @@ def collect_project(path: Path) -> ProjectSnapshot:
     count = _run_git(path, "rev-list", "--count", "HEAD")
     snap.total_commits = int(count) if count.isdigit() else 0
 
-    # Branches
+    # Branches (with ahead/behind tracking)
     branch_output = _run_git(path, "branch", "-v", "--no-color")
     if branch_output:
         for line in branch_output.splitlines():
             is_current = line.startswith("*")
             parts = line.lstrip("* ").split(None, 2)
             if len(parts) >= 2:
+                branch_name = parts[0]
+                ahead, behind = 0, 0
+                upstream = _run_git(
+                    path,
+                    "rev-parse",
+                    "--abbrev-ref",
+                    f"{branch_name}@{{upstream}}",
+                )
+                if upstream:
+                    ab = _run_git(
+                        path,
+                        "rev-list",
+                        "--left-right",
+                        "--count",
+                        f"{branch_name}...{upstream}",
+                    )
+                    if ab:
+                        ab_parts = ab.split()
+                        if len(ab_parts) == 2:
+                            ahead = int(ab_parts[0])
+                            behind = int(ab_parts[1])
                 snap.branches.append(
                     BranchInfo(
-                        name=parts[0],
+                        name=branch_name,
                         is_current=is_current,
                         last_commit=parts[1],
+                        ahead=ahead,
+                        behind=behind,
                     )
                 )
 
