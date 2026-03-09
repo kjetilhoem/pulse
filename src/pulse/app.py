@@ -70,7 +70,7 @@ class PulseApp(App):
                 yield Static("")
                 yield ActivityFeed(id="feed")
 
-            with Vertical(id="right-panel"):
+            with ScrollableContainer(id="right-panel"):
                 yield SkillPanel(id="skills")
 
         yield Footer()
