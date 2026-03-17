@@ -1,4 +1,4 @@
-"""Skill library panel — shows available skills and domain packs."""
+"""Skill library panel — shows full skill hierarchy."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from textual.widgets import Static
 
 
 class SkillPanel(Static):
-    """Shows skill library stats."""
+    """Shows the complete skill library tree."""
 
     DEFAULT_CSS = """
     SkillPanel {
@@ -23,38 +23,43 @@ class SkillPanel(Static):
     SKILLS_DOMAINS = Path.home() / ".claude" / "skills" / "domains"
 
     def refresh_skills(self) -> None:
-        """Scan skill directories and update display."""
+        """Scan skill directories and update display with full hierarchy."""
         lines = ["[bold #E94560] SKILL LIBRARY[/]\n"]
 
-        # Universal skills
-        common_count = self._count_skills(self.SKILLS_COMMON)
-        lines.append(f"  [#00FF88]{common_count}[/] [#AAAACC]universal skills[/]")
+        # Universal skills — listed individually
+        common_skills = self._list_skills(self.SKILLS_COMMON)
+        lines.append(f"  [bold #00FF88]COMMON[/] [#666677]({len(common_skills)})[/]")
+        for skill in common_skills:
+            lines.append(f"    [#AAAACC]{skill}[/]")
 
-        # Domain packs
+        # Domain packs — each with full skill list
         if self.SKILLS_DOMAINS.exists():
-            lines.append("")
             for domain_dir in sorted(self.SKILLS_DOMAINS.iterdir()):
                 if domain_dir.is_dir():
-                    count = self._count_skills(domain_dir)
+                    skills = self._list_skills(domain_dir)
                     icon = self._domain_icon(domain_dir.name)
+                    lines.append("")
                     lines.append(
-                        f"  {icon} [#00D9FF]{domain_dir.name:<8}[/] [#AAAACC]{count} skills[/]"
+                        f"  {icon} [bold #00D9FF]{domain_dir.name.upper()}[/] [#666677]({len(skills)})[/]"
                     )
+                    for skill in skills:
+                        lines.append(f"    [#AAAACC]{skill}[/]")
 
-        total = common_count + sum(
-            self._count_skills(d)
+        total = len(common_skills) + sum(
+            len(self._list_skills(d))
             for d in self.SKILLS_DOMAINS.iterdir()
             if d.is_dir()
-        ) if self.SKILLS_DOMAINS.exists() else common_count
-        lines.append(f"\n  [#666677]{total} total[/]")
+        ) if self.SKILLS_DOMAINS.exists() else len(common_skills)
+        lines.append(f"\n  [#666677]─── {total} skills total ───[/]")
 
         self.update("\n".join(lines))
 
     @staticmethod
-    def _count_skills(path: Path) -> int:
+    def _list_skills(path: Path) -> list[str]:
+        """Return sorted list of skill names (without .yaml extension)."""
         if not path.exists():
-            return 0
-        return len(list(path.glob("*.yaml")))
+            return []
+        return sorted(p.stem for p in path.glob("*.yaml"))
 
     @staticmethod
     def _domain_icon(name: str) -> str:
