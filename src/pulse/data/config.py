@@ -4,6 +4,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
+# GitHub owner
+GITHUB_OWNER = "kjetilhoem"
+
 # Projects to monitor. Add new entries here.
 PROJECTS: list[Path] = [
     Path.home() / "workspace" / "beatsense",

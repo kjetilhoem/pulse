@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from textual.widgets import Static
 
 from pulse.data.git_collector import ProjectSnapshot
+from pulse.data.github_collector import PullRequest
 
 
 class HeaderBar(Static):
@@ -23,7 +24,11 @@ class HeaderBar(Static):
     }
     """
 
-    def update_stats(self, snapshots: list[ProjectSnapshot]) -> None:
+    def update_stats(
+        self,
+        snapshots: list[ProjectSnapshot],
+        prs: list[PullRequest] | None = None,
+    ) -> None:
         """Recalculate portfolio stats."""
         total_projects = len(snapshots)
         total_commits = sum(s.total_commits for s in snapshots)
@@ -32,7 +37,9 @@ class HeaderBar(Static):
 
         now = datetime.now(timezone.utc).strftime("%H:%M:%S")
 
-        action_count = sum(1 for s in snapshots if s.needs_action)
+        git_actions = sum(1 for s in snapshots if s.needs_action)
+        pr_actions = sum(1 for p in (prs or []) if p.needs_action)
+        total_actions = git_actions + pr_actions
 
         parts = [
             f"[bold #E94560] PULSE [/]",
@@ -40,9 +47,9 @@ class HeaderBar(Static):
             f"[#00FF88]{total_commits} commits[/]",
             f"[#00D9FF]{total_branches} branches[/]",
         ]
-        if action_count:
+        if total_actions:
             parts.append(
-                f"[bold reverse #E94560]  ▶ {action_count} NEED ACTION  [/]"
+                f"[bold reverse #E94560]  ▶ {total_actions} NEED ACTION  [/]"
             )
         if total_changes:
             parts.append(f"[#FFB800]{total_changes} uncommitted[/]")

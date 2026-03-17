@@ -35,6 +35,11 @@ pytest
 - Animated transitions where possible
 - The aesthetic goal: a mission control screen that looks like it belongs in a sci-fi film
 
+## Git Workflow
+- **Never push directly to main.** Always create a feature branch and open a PR.
+- Branch naming: `feature/<short-description>` or `fix/<short-description>`
+- PRs require review before merging — do not auto-merge.
+
 ## Conventions
 - All paths use absolute references
 - Git operations are read-only (never modify repos from the dashboard)
